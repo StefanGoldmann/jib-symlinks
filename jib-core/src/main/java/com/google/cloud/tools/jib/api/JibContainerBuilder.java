@@ -87,6 +87,8 @@ public class JibContainerBuilder {
   // TODO(chanseok): remove and use containerBuildPlanBuilder instead.
   private List<FileEntriesLayer> layerConfigurations = new ArrayList<>();
 
+  private boolean retainSymlinks = false;
+
   /** Instantiate with {@link Jib#from}. */
   JibContainerBuilder(RegistryImage baseImage) {
     this(
@@ -137,6 +139,24 @@ public class JibContainerBuilder {
   }
 
   /**
+   * Controls what happens to symbolic links, when encountered. If set,
+   * links are entered into the respective layers directly, whereas when cleaned,
+   * links are resolved and the actual files/directories are added.
+   *
+   * <p>
+   * Changing this settings does not affect layers already being added.
+   * </p>
+   *
+   * @param retain - Retain or resolve symbolic links in following layers.
+   *
+   * @return this
+   */
+  public JibContainerBuilder retainSymlinks(boolean retain) {
+	  retainSymlinks = retain;
+	  return this;
+  }
+
+  /**
    * Adds a new layer to the container with {@code files} as the source files and {@code
    * pathInContainer} as the path to copy the source files to in the container file system.
    *
@@ -167,7 +187,7 @@ public class JibContainerBuilder {
    */
   public JibContainerBuilder addLayer(List<Path> files, AbsoluteUnixPath pathInContainer)
       throws IOException {
-    FileEntriesLayer.Builder layerConfigurationBuilder = FileEntriesLayer.builder();
+    FileEntriesLayer.Builder layerConfigurationBuilder = FileEntriesLayer.builder(retainSymlinks);
 
     for (Path file : files) {
       layerConfigurationBuilder.addEntryRecursive(

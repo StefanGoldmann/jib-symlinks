@@ -97,6 +97,9 @@ class BuildAndCacheApplicationLayerStep implements Callable<PreparedLayer> {
         TimerEventDispatcher ignored2 = new TimerEventDispatcher(eventHandlers, description)) {
       Cache cache = buildContext.getApplicationLayersCache();
 
+      // FIXME: Cache must take care about symlink setting as well, as 'same' entry may denote different
+      // thing with respect to symlink resolution strategy.
+
       ImmutableList<FileEntry> layerEntries = ImmutableList.copyOf(layerConfiguration.getEntries());
       // Don't build the layer if it exists already.
       Optional<CachedLayer> optionalCachedLayer = cache.retrieve(layerEntries);
@@ -104,7 +107,8 @@ class BuildAndCacheApplicationLayerStep implements Callable<PreparedLayer> {
         return new PreparedLayer.Builder(optionalCachedLayer.get()).setName(layerName).build();
       }
 
-      Blob layerBlob = new ReproducibleLayerBuilder(layerEntries).build();
+      boolean retainSymlinks = layerConfiguration.retainSymlinks();
+      Blob layerBlob = new ReproducibleLayerBuilder(layerEntries, retainSymlinks).build();
       CachedLayer cachedLayer = cache.writeUncompressedLayer(layerBlob, layerEntries);
 
       eventHandlers.dispatch(LogEvent.debug(description + " built " + cachedLayer.getDigest()));
